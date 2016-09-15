@@ -80,6 +80,9 @@ def root_markerStyles(input):
 
 def getListsFromString(string):
 
+  # Make 2 comma safe
+  string.replace(',,',',')
+  
   Lists = []
   for List in string.split(","):
     Lists.append(List.split(":"))
@@ -215,25 +218,28 @@ def setupHist(histAndMap,opts):
 
   if( getOption("type",map)=="Function"):
       hist=histAndMap[0].GetHistogram()
-  
+     
+    
+  xRange=getOption("xRange",opts)
+  if xRange!=0:
+    xLow=xRange.split("-")[0]
+    xUp=xRange.split("-")[1]
+    hist.GetXaxis().SetRangeUser( float(xLow), float(xUp) )
+    print "Setting xRange to be", str(xLow)+"-"+str(xUp)
+    
   yRange=getOption("yRange",map)
   if yRange!=0:
     yLow=yRange.split("-")[0]
     yUp=yRange.split("-")[1]
     hist.GetYaxis().SetRangeUser( float(yLow), float(yUp) )
     print "Setting yRange to be", yRange
+
   elif (int(getOption("Logy",opts)) > 0) and (int( getOption("pad",map) )==1):
     yLow=max(0.5,hist.GetMinimum()/20)
     yUp=hist.GetMaximum()*100
     hist.GetYaxis().SetRangeUser( float(yLow), float(yUp) )
-    
-    
-  xRange=getOption("xRange",opts)
-  if xRange!=0:
-    yLow=xRange.split("-")[0]
-    yUp=xRange.split("-")[1]
-    hist.GetXaxis().SetRangeUser( float(yLow), float(yUp) )
-    print "Setting xRange to be", xRange
+    print "Setting yRange to be", str(yLow)+"-"+str(yUp)
+
 
   hist.SetLineColor( root_colours(getOption("colour",map) ) )
   hist.SetMarkerColor( root_colours(getOption("colour",map) ) )
@@ -333,7 +339,8 @@ def finaliseCanvas(opts, canv, pad1, pad2):
 
   gStyle.SetOptStat(0)
   legend=getOption("legend",opts)
-  legend.Draw()
+  if legend:
+    legend.Draw()
 
   #Add a string to the plot
   plotString=getOption("plotString",opts)
