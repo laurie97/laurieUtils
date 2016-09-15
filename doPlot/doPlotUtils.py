@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-
 ####################################
 #
 # doPlotUtils.py
@@ -25,7 +24,7 @@ gStyle.SetOptTitle( 0 )
 
 import AtlasStyle
 
-v=True
+verbose=False
 
 def root_colours(input):
 
@@ -88,16 +87,14 @@ def getListsFromString(string):
     Lists.append(List.split(":"))
   return Lists
 
-def getOptionMapFromString(optionString): 
+def getOptionMapFromString(optionString, verbose=False): 
 
     optionMap={}
 
     optionLists=getListsFromString(optionString)
     for optionList in optionLists:
         optionMap[optionList[0]]=optionList[1]
-        print "  ", optionList[0], ":", optionList[1]
-      
-    print
+        if(verbose): print "  ", optionList[0], ":", optionList[1]
 
     return optionMap
 
@@ -107,8 +104,8 @@ defaultOptionString+=",yTitle:Frequency,yTitleSize:0.06,xTitleSize:0.06"
 defaultOptionString+=",ratio_yTitle:Ratio,ratio_yTitleSize:0.15,ratio_yTitleOffset:0.25,ratio_xTitle:,ratio_xLabelSize:0.07,ratio_yLabelSize:0.07"
 defaultOptionString+=",legendPos:0.6-0.7-0.9-0.9,plotSuffix:pdf-C-png"
 
-print
-print "Default Settings for map"
+if(verbose): print
+if(verbose): print "Default Settings for map"
 defaultOptionMap=getOptionMapFromString(defaultOptionString)
 
 def getOption(option, optionMap):
@@ -127,41 +124,20 @@ def getOption(option, optionMap):
     else:
       return ret
 
-def openHistsAndStrings(histsAndStrings):
+def openHistsAndStrings(histsAndStrings, verbose=False):
 
   histsAndMaps=[]
   
   for histAndString in histsAndStrings:
     histAndMap=[]
     histAndMap.append(histAndString[0])
-    if v: print
-    if v: print "Setting options for histMap", histAndMap[0].GetName()
+    if verbose: print
+    if verbose: print "Setting options for histMap", histAndMap[0].GetName()
     histAndMap.append(getOptionMapFromString(histAndString[1]))
     histsAndMaps.append(histAndMap)
 
   return histsAndMaps
 
-def doHistsAndStringsTest( histsAndMaps, opts):
- 
-  histAndMap=histsAndMaps[0]
-
-  print "Hists 1"
-  print "histAndMap[0]", histAndMap[0]
-  print "histAndMap[1]", histAndMap[1]
-  print "histAndMap[0]", getOption("working",histAndMap[1]) 
-  print "optionMap", opts
-  print "working take 2", getOption("working",opts)
-  print
-
-  histAndMap=histsAndMaps[1]
-
-  print "Hists 2"
-  print "histAndMap[0]", histAndMap[0]
-  print "histAndMap[1]", histAndMap[1]
-  print "histAndMap[0]", getOption("working",histAndMap[1]) 
-  print "optionMap", opts
-  print "working take 2", getOption("working",opts)
-  print
 
 def setupCanvas(opts):
 
@@ -177,7 +153,7 @@ def setupCanvas(opts):
   pad1.Draw()
   pad2.Draw()
     
-  print getOption("nPads",opts)
+  if(getOption('verbose',opts)): print "nPads:", getOption("nPads",opts)
 
   if int( getOption("nPads",opts) ) > 1:
     pad1.Draw()
@@ -193,11 +169,11 @@ def setupCanvas(opts):
   if int(getOption("Logx",opts)) > 0:
     pad1.SetLogx()
     pad2.SetLogx()
-    print "  Setting Logx"
+    if(getOption('verbose',opts)): print "  Setting Logx"
 
   if int(getOption("Logy",opts)) > 0:
     pad1.SetLogy()
-    print "  Setting Logy"
+    if(getOption('verbose',opts)): print "  Setting Logy"
 
 
   if getOption("legend",opts):
@@ -207,7 +183,7 @@ def setupCanvas(opts):
     legend.SetTextSize(0.04)
     
     opts["legend"]=legend
-    print " Added a legend"
+    if(getOption('verbose',opts)): print " Added a legend"
 
   return canv, pad1, pad2
 
@@ -225,20 +201,20 @@ def setupHist(histAndMap,opts):
     xLow=xRange.split("-")[0]
     xUp=xRange.split("-")[1]
     hist.GetXaxis().SetRangeUser( float(xLow), float(xUp) )
-    print "Setting xRange to be", str(xLow)+"-"+str(xUp)
+    if(getOption('verbose',opts)): print "Setting xRange to be", str(xLow)+"-"+str(xUp)
     
   yRange=getOption("yRange",map)
   if yRange!=0:
     yLow=yRange.split("-")[0]
     yUp=yRange.split("-")[1]
     hist.GetYaxis().SetRangeUser( float(yLow), float(yUp) )
-    print "Setting yRange to be", yRange
+    if(getOption('verbose',opts)): print "Setting yRange to be", yRange
 
   elif (int(getOption("Logy",opts)) > 0) and (int( getOption("pad",map) )==1):
     yLow=max(0.5,hist.GetMinimum()/20)
     yUp=hist.GetMaximum()*100
     hist.GetYaxis().SetRangeUser( float(yLow), float(yUp) )
-    print "Setting yRange to be", str(yLow)+"-"+str(yUp)
+    if(getOption('verbose',opts)): print "Setting yRange to be", str(yLow)+"-"+str(yUp)
 
 
   hist.SetLineColor( root_colours(getOption("colour",map) ) )
@@ -306,7 +282,7 @@ def drawHist(histAndMap,opts,pad1,pad2):
     pad2.cd()
 
   else:
-    print "Don't know which pad to put", hist.GetName()
+    if(getOption('verbose',opts)): print "Don't know which pad to put", hist.GetName()
     return
   
   hist.Draw(drawOption)
@@ -316,7 +292,7 @@ def drawHist(histAndMap,opts,pad1,pad2):
   legOption="epl"
   if getOption("legend",opts) and getOption("legend",map):
     opts["legend"].AddEntry(hist, getOption("legend",map), legOption)
-    print " Added to legend"
+    if(getOption('verbose',opts)): print " Added to legend"
     
   histAndMap[1]=map
 
@@ -327,7 +303,7 @@ def drawHist(histAndMap,opts,pad1,pad2):
 def finaliseCanvas(opts, canv, pad1, pad2):
 
   pad1.cd()
-  print "Let's do finalise canvas"
+  if(getOption('verbose',opts)): print "Let's do finalise canvas"
   if getOption("atlasLabel",opts)!=0:
     labelPosX=float(getOption("atlasLabelPos",opts).split('-')[0])
     labelPosY=float(getOption("atlasLabelPos",opts).split('-')[1])
@@ -344,19 +320,16 @@ def finaliseCanvas(opts, canv, pad1, pad2):
 
   #Add a string to the plot
   plotString=getOption("plotString",opts)
-  print "plotString is", plotString
+  if(getOption('verbose',opts)): print "plotString is", plotString
   if plotString!=0:
     plotStringList= plotString.split('+')
     plotStringPos=getOption("plotStringPos",opts).split('-')
     yPos = float(plotStringPos[1])  # Init position of y
     for string in plotStringList:
       #print "AtlasStyle.myText(0.65,",yPos,",1,","#scale[0.9]{"+string+"}",")"
-      print "  -",string
+      if(getOption('verbose',opts)): print "  -",string
       AtlasStyle.myText(float(plotStringPos[0]),yPos,1,"#scale["+plotStringPos[2]+"]{"+string+"}")
       yPos=yPos-0.05
-
-  ##Add a legend to the plot
-
       
 
 
@@ -364,11 +337,17 @@ def doPlot( histsAndStrings, optionString):
 
  
   #getDefault()
-  
-  histsAndMaps = openHistsAndStrings(histsAndStrings)
+  print
+  print " ******************  do Plot  **********************"
 
-  print "Getting general options"
-  opts=getOptionMapFromString(optionString)
+  verbose=False
+  if("verbose:" in optionString): verbose=True
+  
+  if verbose: print "Getting histsAndStrings"
+  histsAndMaps = openHistsAndStrings(histsAndStrings , verbose )
+  
+  if verbose: print "Getting general options"
+  opts=getOptionMapFromString(optionString, verbose )
 
   (canv, pad1, pad2) = setupCanvas(opts)
 
@@ -389,6 +368,7 @@ def doPlot( histsAndStrings, optionString):
   for suffix in suffixList:
     canv.Print(getOption("plotName",opts)+"."+suffix)
   print "doPlot prints to "+getOption("plotName",opts)+"."+suffixList[0]
+  print " ****************************************************"
   
   
 
