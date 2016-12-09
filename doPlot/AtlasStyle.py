@@ -15,7 +15,7 @@ def ATLAS_LABEL(x, y, color=1, label = "Internal"):
     l2.SetNDC()
     l2.SetTextColor(color)
     l2.DrawLatex(x+0.13,y, label)
-    print "  Drawing label", x,y,label
+    #print "  Drawing label", x,y,label
 
 def myText(x, y, color, text):
   #tsize=0.05

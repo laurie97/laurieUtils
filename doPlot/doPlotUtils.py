@@ -25,6 +25,7 @@ gStyle.SetOptTitle( 0 )
 import AtlasStyle
 
 verbose=False
+quiet=False
 
 def root_colours(input):
 
@@ -344,14 +345,14 @@ def finaliseCanvas(opts, canv, pad1, pad2):
 
 def doPlot( histsAndStrings, optionString):
 
- 
-  #getDefault()
-  print
-  print " ******************  do Plot  **********************"
-
   verbose=False
   if("verbose:" in optionString): verbose=True
   
+  #getDefault()
+  if verbose: print
+  if verbose: print " ******************  do Plot  **********************"
+
+ 
   if verbose: print "Getting histsAndStrings"
   histsAndMaps = openHistsAndStrings(histsAndStrings , verbose )
   
@@ -381,7 +382,7 @@ def doPlot( histsAndStrings, optionString):
   for suffix in suffixList:
     canv.Print(getOption("plotName",opts)+"."+suffix)
   print "doPlot prints to "+getOption("plotName",opts)+"."+suffixList[0]
-  print " ****************************************************"
+  if verbose: print " ****************************************************"
   
   
 
