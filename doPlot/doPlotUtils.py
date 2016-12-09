@@ -81,7 +81,8 @@ def getListsFromString(string):
 
   # Make 2 comma safe
   string.replace(',,',',')
-  
+  #print "Doing make string safe"
+
   Lists = []
   for List in string.split(","):
     Lists.append(List.split(":"))
@@ -175,6 +176,10 @@ def setupCanvas(opts):
     pad1.SetLogy()
     if(getOption('verbose',opts)): print "  Setting Logy"
 
+  if int(getOption("Logz",opts)) > 0:
+    pad1.SetLogz()
+    if(getOption('verbose',opts)): print "  Setting Logz"
+
 
   if getOption("legend",opts):
     legendPos=getOption("legendPos",opts).split("-")
@@ -205,8 +210,13 @@ def setupHist(histAndMap,opts):
     
   yRange=getOption("yRange",map)
   if yRange!=0:
-    yLow=yRange.split("-")[0]
-    yUp=yRange.split("-")[1]
+    if ";" in yRange:
+      yLow=yRange.split(";")[0]
+      yUp=yRange.split(";")[1]
+    else:
+      yLow=yRange.split("-")[0]
+      yUp=yRange.split("-")[1]
+      
     hist.GetYaxis().SetRangeUser( float(yLow), float(yUp) )
     if(getOption('verbose',opts)): print "Setting yRange to be", yRange
 
@@ -216,12 +226,11 @@ def setupHist(histAndMap,opts):
     hist.GetYaxis().SetRangeUser( float(yLow), float(yUp) )
     if(getOption('verbose',opts)): print "Setting yRange to be", str(yLow)+"-"+str(yUp)
 
-
   hist.SetLineColor( root_colours(getOption("colour",map) ) )
   hist.SetMarkerColor( root_colours(getOption("colour",map) ) )
   hist.SetMarkerStyle(root_markerStyles(getOption("markerStyle",map) ) )
 
-
+  
   # Check if first histogram for pad
   if int( getOption("pad",map) )==1:
     drawOption=getOption("pad1DrawOption",opts)
@@ -362,6 +371,10 @@ def doPlot( histsAndStrings, optionString):
   # Finalise Canvas (add text to plots, legends ect...)
   finaliseCanvas(opts, canv, pad1, pad2)
 
+  # Create directory for plot if not already done
+  plotDirName=getOption("plotName",opts).rsplit('/', 1)[0]
+  if not os.path.isdir(plotDirName):
+    os.makedirs(plotDirName)
   
   # Print Canvas
   suffixList=getOption("plotSuffix",opts).split("-")
