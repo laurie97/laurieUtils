@@ -133,8 +133,6 @@ def openHistsAndStrings(histsAndStrings, verbose=False):
   for histAndString in histsAndStrings:
     histAndMap=[]
     histAndMap.append(histAndString[0])
-    if verbose: print
-    if verbose: print "Setting options for histMap", histAndMap[0].GetName()
     histAndMap.append(getOptionMapFromString(histAndString[1]))
     histsAndMaps.append(histAndMap)
 
@@ -181,6 +179,13 @@ def setupCanvas(opts):
     pad1.SetLogz()
     if(getOption('verbose',opts)): print "  Setting Logz"
 
+  if int(getOption("Gridx",opts)) > 0:
+    pad1.SetGridx()
+    if(getOption('verbose',opts)): print "  Setting Gridx"
+
+  if int(getOption("Gridy",opts)) > 0:
+    pad1.SetGridy()
+    if(getOption('verbose',opts)): print "  Setting Gridy"
 
   if getOption("legend",opts):
     legendPos=getOption("legendPos",opts).split("-")
@@ -198,10 +203,12 @@ def setupHist(histAndMap,opts):
   hist=histAndMap[0]
   map=histAndMap[1]
 
+  if(getOption('verbose',opts)): print
+  if(getOption('verbose',opts)): print "Setting options for histMap", hist.GetName()
+  
   if( getOption("type",map)=="Function"):
       hist=histAndMap[0].GetHistogram()
-     
-    
+         
   xRange=getOption("xRange",opts)
   if xRange!=0:
     xLow=xRange.split("-")[0]
@@ -227,6 +234,7 @@ def setupHist(histAndMap,opts):
     hist.GetYaxis().SetRangeUser( float(yLow), float(yUp) )
     if(getOption('verbose',opts)): print "Setting yRange to be", str(yLow)+"-"+str(yUp)
 
+  if(getOption('verbose',opts)): print "Setting colour to ", getOption("colour",map)
   hist.SetLineColor( root_colours(getOption("colour",map) ) )
   hist.SetMarkerColor( root_colours(getOption("colour",map) ) )
   hist.SetMarkerStyle(root_markerStyles(getOption("markerStyle",map) ) )
@@ -306,7 +314,7 @@ def drawHist(histAndMap,opts,pad1,pad2):
     
   histAndMap[1]=map
 
-  print "Drawn hist", hist.GetName(), "with drawOption", drawOption, "in pad", int( getOption("pad",map) )
+  if(getOption('verbose',opts)): print "  Drawn hist", hist.GetName(), "with drawOption", drawOption, "in pad", int( getOption("pad",map) )
   
   return
 
@@ -381,7 +389,7 @@ def doPlot( histsAndStrings, optionString):
   suffixList=getOption("plotSuffix",opts).split("-")
   for suffix in suffixList:
     canv.Print(getOption("plotName",opts)+"."+suffix)
-  print "doPlot prints to "+getOption("plotName",opts)+"."+suffixList[0]
+  print "  doPlot prints to "+getOption("plotName",opts)+"."+suffixList[0]
   if verbose: print " ****************************************************"
   
   
