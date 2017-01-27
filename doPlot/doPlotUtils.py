@@ -77,6 +77,15 @@ def root_markerStyles(input):
 
   return output
 
+def root_fillStyles(input):
+
+  if input=="Solid":
+    output=1001
+  else:
+    output=int(input)
+
+  return output
+
 
 def getListsFromString(string):
 
@@ -95,8 +104,11 @@ def getOptionMapFromString(optionString, verbose=False):
 
     optionLists=getListsFromString(optionString)
     for optionList in optionLists:
+      try:
         optionMap[optionList[0]]=optionList[1]
-        if(verbose): print "  ", optionList[0], ":", optionList[1]
+      except:
+        raise SystemError("doPlot: optionMap problem, optionList:", optionList)
+      if(verbose): print "  ", optionList[0], ":", optionList[1]
 
     return optionMap
 
@@ -104,7 +116,7 @@ def getOptionMapFromString(optionString, verbose=False):
 defaultOptionString="Type:Hist,nPads:2,Logx:0,Logy:0,colour:Black,pad1DrawOption:,pad2DrawOption:,atlasLabel:Internal,atlasLabelPos:0.2-0.85,plotStringPos:0.2-0.7-0.9,plotName:test"
 defaultOptionString+=",yTitle:Frequency,yTitleSize:0.06,xTitleSize:0.06"
 defaultOptionString+=",ratio_yTitle:Ratio,ratio_yTitleSize:0.15,ratio_yTitleOffset:0.25,ratio_xTitle:,ratio_xLabelSize:0.07,ratio_yLabelSize:0.07"
-defaultOptionString+=",legendPos:0.6-0.7-0.9-0.9,plotSuffix:pdf-C-png"
+defaultOptionString+=",legendPos:0.6-0.7-0.9-0.9,plotSuffix:pdf-C-png,verbose:0"
 
 if(verbose): print
 if(verbose): print "Default Settings for map"
@@ -192,6 +204,9 @@ def setupCanvas(opts):
     legend=ROOT.TLegend( float(legendPos[0]), float(legendPos[1]), float(legendPos[2]), float(legendPos[3]) )
     legend.SetFillStyle(0)
     legend.SetTextSize(0.04)
+
+    if getOption("legendColumns",opts):
+      legend.SetNColumns(int(getOption("legendColumns",opts)))
     
     opts["legend"]=legend
     if(getOption('verbose',opts)): print " Added a legend"
@@ -234,11 +249,18 @@ def setupHist(histAndMap,opts):
     hist.GetYaxis().SetRangeUser( float(yLow), float(yUp) )
     if(getOption('verbose',opts)): print "Setting yRange to be", str(yLow)+"-"+str(yUp)
 
-  if(getOption('verbose',opts)): print "Setting colour to ", getOption("colour",map)
   hist.SetLineColor( root_colours(getOption("colour",map) ) )
   hist.SetMarkerColor( root_colours(getOption("colour",map) ) )
   hist.SetMarkerStyle(root_markerStyles(getOption("markerStyle",map) ) )
 
+  hist.SetFillColor( root_colours(getOption("colour",map) ) )
+  hist.SetFillStyle( root_fillStyles(getOption("fillStyle",map) ) )
+  
+  if(getOption('verbose',opts)): print "Setting colour to ", getOption("colour",map)
+  if(getOption('verbose',opts)): print "Setting markerStyle to ", getOption("markerStyle",map)
+  if(getOption('verbose',opts)): print "Setting fillStyle to ", getOption("fillStyle",map)
+  ##print "=> hist.SetFillStyle("+str(root_fillStyles(getOption("fillStyle",map) ) )+"), from "+str(getOption("fillStyle",map))
+  
   
   # Check if first histogram for pad
   if int( getOption("pad",map) )==1:
@@ -254,8 +276,11 @@ def setupHist(histAndMap,opts):
     hist.GetXaxis().SetMoreLogLabels() # Always
     
     #Set Titles
-    if getOption(pad+"yTitle",opts)!=0:
+    if  getOption("yTitle",map) != "Frequency" and getOption("yTitle",map) != 0:
+      hist.SetYTitle(getOption("yTitle",map))    
+    elif getOption(pad+"yTitle",opts) != 0:
       hist.SetYTitle(getOption(pad+"yTitle",opts))
+   
     if getOption(pad+"xTitle",opts)!=0:
       hist.SetXTitle(getOption(pad+"xTitle",opts))
 
@@ -289,6 +314,8 @@ def drawHist(histAndMap,opts,pad1,pad2):
   hist=histAndMap[0]
   map=histAndMap[1]
 
+  drawOption=""
+        
   if int( getOption("pad",map) )==1:
     drawOption=getOption("pad1DrawOption",opts)
     opts["pad1DrawOption"]="same"
@@ -302,12 +329,18 @@ def drawHist(histAndMap,opts,pad1,pad2):
   else:
     if(getOption('verbose',opts)): print "Don't know which pad to put", hist.GetName()
     return
+
+  if getOption("drawOption",map):
+    drawOption+=getOption("drawOption",map)
   
   hist.Draw(drawOption)
   
   ############
   ##Add to legend
   legOption="epl"
+  if getOption("drawOption",map):
+    legOption=getOption("drawOption",map)
+
   if getOption("legend",opts) and getOption("legend",map):
     opts["legend"].AddEntry(hist, getOption("legend",map), legOption)
     if(getOption('verbose',opts)): print " Added to legend"
@@ -325,6 +358,7 @@ def finaliseCanvas(opts, canv, pad1, pad2):
   if getOption("atlasLabel",opts)!=0:
     labelPosX=float(getOption("atlasLabelPos",opts).split('-')[0])
     labelPosY=float(getOption("atlasLabelPos",opts).split('-')[1])
+    if(getOption('verbose',opts)): print "labelPos ",labelPosX, labelPosY
     AtlasStyle.ATLAS_LABEL(labelPosX,labelPosY, 1, getOption("atlasLabel",opts))
     AtlasStyle.myText(labelPosX,(labelPosY-0.05),1,"#scale[0.9]{#sqrt{s} = 13 TeV}");
     if getOption("lumi",opts)!=0:
