@@ -77,12 +77,24 @@ def root_markerStyles(input):
 
   return output
 
-def root_fillStyles(input):
-
-  if input=="Solid":
+def root_fillStyles(inputRaw):
+  
+  try:
+    input=inputRaw.lower()
+  except:
+    input=inputRaw
+  
+  if input=="solid":
     output=1001
+  elif input=="heavydots":
+    output=3001  
+  elif (input=="mediumdots" or input=="dots"):
+    output=3002  
+  elif input=="lightdots":
+    output=3002  
+    
   else:
-    output=int(input)
+    output=int(inputRaw)
 
   return output
 
@@ -105,7 +117,7 @@ def getOptionMapFromString(optionString, verbose=False):
     optionLists=getListsFromString(optionString)
     for optionList in optionLists:
       try:
-        optionMap[optionList[0]]=optionList[1]
+        optionMap[optionList[0]]=optionList[1].replace("\comma",",")
       except:
         raise SystemError("doPlot: optionMap problem, optionList:", optionList)
       if(verbose): print "  ", optionList[0], ":", optionList[1]
@@ -115,7 +127,7 @@ def getOptionMapFromString(optionString, verbose=False):
 
 defaultOptionString="Type:Hist,nPads:2,Logx:0,Logy:0,colour:Black,pad1DrawOption:,pad2DrawOption:,atlasLabel:Internal,atlasLabelPos:0.2-0.85,plotStringPos:0.2-0.7-0.9,plotName:test"
 defaultOptionString+=",yTitle:Frequency,yTitleSize:0.06,xTitleSize:0.06"
-defaultOptionString+=",ratio_yTitle:Ratio,ratio_yTitleSize:0.15,ratio_yTitleOffset:0.25,ratio_xTitle:,ratio_xLabelSize:0.07,ratio_yLabelSize:0.07"
+defaultOptionString+=",ratio_yTitle:Ratio,ratio_yTitleSize:0.15,ratio_yTitleOffset:0.25,ratio_xTitle:,ratio_xLabelSize:0.07,ratio_yLabelSize:0.07,pad:1"
 defaultOptionString+=",legendPos:0.6-0.7-0.9-0.9,plotSuffix:pdf-C-png,verbose:0"
 
 if(verbose): print
@@ -338,8 +350,8 @@ def drawHist(histAndMap,opts,pad1,pad2):
   ############
   ##Add to legend
   legOption="epl"
-  if getOption("drawOption",map):
-    legOption=getOption("drawOption",map)
+  if getOption("fillStyle",map):
+    legOption="fepl"
 
   if getOption("legend",opts) and getOption("legend",map):
     opts["legend"].AddEntry(hist, getOption("legend",map), legOption)
