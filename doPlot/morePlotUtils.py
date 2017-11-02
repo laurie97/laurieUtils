@@ -18,8 +18,9 @@ import array
 from   math  import sqrt
 from collections import defaultdict
 
-##cmd_subfolder = os.path.realpath("/afs/cern.ch/user/l/lmcclymo/private/bTrigger_workspace/StudyTrigTracks/StudyTrigTracks/scripts/")
-cmd_subfolder = os.path.realpath("/afs/cern.ch/user/l/lmcclymo/private/dijet_workspace/BTaggedDiJet_Run2/Code/trunk/FitStudies/scripts")
+##cmd_subfolder = os.path.realpath("/afs/cern.ch/user/l/lmcclymo/public/bTrigger_workspace/StudyTrigTracks/StudyTrigTracks/scripts/")
+##cmd_subfolder = os.path.realpath("/afs/cern.ch/user/l/lmcclymo/public/dijet_workspace/BTaggedDiJet_Run2/Code/trunk/FitStudies/scripts")
+cmd_subfolder = os.path.realpath("/afs/cern.ch/user/l/lmcclymo/public/laurieUtils/doPlot/")
 sys.path.insert(0, cmd_subfolder)
 
 import doPlotUtils
@@ -30,10 +31,10 @@ from doPlotUtils import doPlot
 import AtlasStyle
 AtlasStyle.SetAtlasStyle()
 ROOT.gROOT.ProcessLine("gErrorIgnoreLevel = 3000") #Ignore TCanvas::Print info
-
 ROOT.gStyle.SetOptTitle( 0 )
 ROOT.gROOT.SetBatch(True)
 
+verbose=False
 
 ########### Define some functions #############
 
@@ -44,6 +45,12 @@ def getFile(fileName, verbose=False):
         print " ** getFile got", file.GetName()
     return file
 
+def makeFile(fileName, verbose=False):
+
+    file= ROOT.TFile(fileName ,"RECREATE")
+    if(verbose):
+        print " ** makeFile got", file.GetName()
+    return file
 
 def getHist(file, histName, outputHistName="", binning="", binning_unit=-1):
 
@@ -51,17 +58,32 @@ def getHist(file, histName, outputHistName="", binning="", binning_unit=-1):
     if not histRaw:
         raise SystemExit('\n***ERROR*** histogram not found: '+file.GetName()+':'+histName)
 
-    hist=histRaw
-    if binning:
+    if not binning:
+        hist=histRaw
+    else:
         hist=rebinHist(histRaw,binning,binning_unit)
     
     hist.Sumw2()
 
+    
     if outputHistName:
         hist.SetName(outputHistName)
 
     hist.SetDirectory(0)
     return hist
+
+def getGraph(file, graphName, outputGraphName=""):
+
+    graphRaw=file.Get(graphName)
+    if not graphRaw:
+        raise SystemExit('\n***ERROR*** graphogram not found: '+file.GetName()+':'+graphName)
+
+    graph=graphRaw
+    
+    if outputGraphName:
+        graph.SetName(outputGraphName)
+
+    return graph
 
 
 def graphToHist(graph, hist):
@@ -83,13 +105,49 @@ def graphToHist(graph, hist):
         hist.SetBinError  (histBin, error)
 
 
+def makeSig(hDataRaw, hBkgRaw, sigOptionRaw=""):
+
+    sigOptionRaw+="error"
+    if(verbose): print "  makeSig: sigOption", sigOptionRaw
+    # No case sensitivity
+    sigOption=sigOptionRaw.lower()
+
+    if("reverse" in sigOptionRaw):
+        #print "!!!! reverse"
+        hData=hBkgRaw
+        hBkg=hDataRaw
+    else:
+        hData=hDataRaw
+        hBkg=hBkgRaw
+   
+    hSig=hBkgRaw.Clone()
+    for iBin in range(hBkg.GetNbinsX()):
+   
+        if( ("error" in sigOptionRaw) and hBkg.GetBinError(iBin) > 0):
+            
+            #if(hData.GetBinContent > 0):
+            #    print "makeSig: iBin {}: ({}-{})/{} =".format(iBin,hData.GetBinContent(iBin),hBkg.GetBinContent(iBin),hBkg.GetBinError(iBin)),
+            #    print (hData.GetBinContent(iBin)-hBkg.GetBinContent(iBin))/hBkg.GetBinError(iBin)
+            hSig.SetBinContent(iBin,  (hData.GetBinContent(iBin)-hBkg.GetBinContent(iBin))/hBkg.GetBinError(iBin) )
+            hSig.SetBinError(  iBin,  0 )
+            continue
+            
+        elif (  hBkg.GetBinContent(iBin) > 0):
+            hSig.SetBinContent(iBin,  (hData.GetBinContent(iBin)-hBkg.GetBinContent(iBin))/sqrt(hBkg.GetBinContent(iBin)) )
+            hSig.SetBinError(  iBin,  0 )
+            continue
+        
+        hSig.SetBinContent(iBin,  0 )
+        hSig.SetBinError(  iBin,  0 )
+            
+    return hSig
+
+        
 def makeRatio(hNum, hDen, ratioOptionRaw=""):
 
-    print "ratioOption", ratioOptionRaw
+    #print "ratioOption", ratioOptionRaw
     # No case sensitivity
     ratioOption=ratioOptionRaw.lower()
-
-
     
     if ratioOption=="bayes":
         print "Doing bayesian errors"
@@ -98,27 +156,25 @@ def makeRatio(hNum, hDen, ratioOptionRaw=""):
         ratioHist = hNum.Clone(hDen.GetName()+"_ratioBayes")        
         graphToHist(ratioGraph,ratioHist)
         return ratioHist
-
         
-    if ("matchbinning" in ratioOption):     
-        hDen
-        
-
-        if("bayes" in ratioOption): doBayes="Bayes"
-        else:                       doBayes=""
-        ratioHist=makeRatio(hNum,hDen,doBayes)
-        return ratioHist
-
+    if ("matchbinning" in ratioOption):
+        print "Match binning"
+        hNumChange=hDen.Clone()
+        for iBin in range(hDen.GetNbinsX()):
+            print " - ",iBin, hNum.GetBinContent(hNum.FindBin(hDen.GetBinCenter(iBin)))
+            hNumChange.SetBinContent(iBin, hNum.GetBinContent(hNum.FindBin(hDen.GetBinCenter(iBin)) ) )
+            hNumChange.SetBinError(  iBin, hNum.GetBinError(  hNum.FindBin(hDen.GetBinCenter(iBin)) ) )
+        hNum=hNumChange
     
     if ("zero" in ratioOption):     
         if ("num" in ratioOption):
-            print "Setting errors in den to zero"
+            if(verbose): print " makeRatio: Setting errors in den to zero"
             hDen=setErrorsToZero(hDen)
         elif ("den" in ratioOption):
-            print "Setting errors in num to zero"
+            if(verbose): print " makeRatio: Setting errors in num to zero"
             hNum=setErrorsToZero(hNum)
         else:
-            print "Error in makeRatio, if option 'zero' then must specify 'zeroden' or 'zeronum'"
+            if(verbose): print " makeRatio: Error in makeRatio, if option 'zero' then must specify 'zeroden' or 'zeronum'"
             return
 
     if("bayes" in ratioOption):
@@ -128,8 +184,13 @@ def makeRatio(hNum, hDen, ratioOptionRaw=""):
         
     else:
         ratioHist=hNum.Clone(hDen.GetName()+"_ratio")
-        ratioHist.Sumw2()
+        try: ratioHist.Sumw2()
+        except: print "makeRatio: warning, not setting Sumw2, might be a function"
         ratioHist.Divide(hDen)
+        #for iBin in range(1,ratioHist.GetNbinsX()+1):
+        #    if(ratioHist.GetBinContent(iBin) > 0):
+        #        sig=(ratioHist.GetBinContent(iBin)-1)/ratioHist.GetBinError(iBin)
+        #        print "makeRatio: iBin {}: ({} +/- {}) => Sig {}".format(iBin,ratioHist.GetBinContent(iBin),ratioHist.GetBinError(iBin),sig)
         return ratioHist
 
    
@@ -198,7 +259,22 @@ def correctForFit(inEff, inFit, xCut=0, correctionName="correction"):
 
     return outEff
 
-    
+def funcToHist(func, cloneHist):
+
+    hist=cloneHist.Clone("h_"+func.GetName())
+
+    print "h_"+func.GetName()
+    for bin in range(hist.GetNbinsX()+1):
+        center=hist.GetBinCenter(bin)
+        cont=func.Eval(center)
+        #if  center < xLow or center > xUp: cont=0
+        hist.SetBinContent(bin, cont)
+        hist.SetBinError(bin,0)
+        ##print " ", bin, hist.GetBinCenter(bin), cont
+        hist.Sumw2()
+
+    return hist
+
 
 def doListMagic(fileListRaw, histNameListRaw):
 
@@ -344,38 +420,88 @@ def doCombinedPlotFromFile( fileNameListRaw, histNameListRaw, plotName, genOptio
 
     doRatioPlot( listOfHistLists, plotName, genOptionString, ratioOption, binning, binning_unit)
     return
+
+
+def doRatioAndSigPlot ( listOfHistListsRaw, plotName, genOptionString="", ratioOption="", sigOption="yRange:-3;3", binning="", binning_unit=-1):
+
+    
+    if not (isinstance(ratioOption, list)):
+        doRatioPlot        ( listOfHistListsRaw, plotName,        genOptionString+",RatioError:zeronum", ratioOption, binning, binning_unit)
+    else:
+        for iRatioOption, thisRatioOption in enumerate(ratioOption):
+            if(iRatioOption==0):
+                doRatioPlot ( listOfHistListsRaw, plotName,        genOptionString+",RatioError:zeronum", thisRatioOption, binning, binning_unit)       
+            else:
+                print "LM Debug:", thisRatioOption, thisRatioOption.replace(".","p").replace(";","_").replace(":","_")                
+                doRatioPlot ( listOfHistListsRaw, plotName+"_ratio_"+thisRatioOption.replace(".","p").replace(";","_").replace(":","_"),
+                              genOptionString+",RatioError:zeronum",
+                              thisRatioOption,  binning, binning_unit)
+               
+        
+        
+    if not (isinstance(sigOption, list)):
+        doSignificancePlot ( listOfHistListsRaw, plotName+"_sig", genOptionString, sigOption,   binning, binning_unit)
+    else:
+        for iSigOption, thisSigOption in enumerate(sigOption):
+            if(iSigOption==0):
+                doSignificancePlot ( listOfHistListsRaw, plotName+"_sig", genOptionString, thisSigOption,   binning, binning_unit)
+            else:
+                print "LM Debug:", thisSigOption, thisSigOption.replace(".","p").replace(";","_").replace(":","_")
+                doSignificancePlot ( listOfHistListsRaw, plotName+"_sig_"+thisSigOption.replace(".","p").replace(";","_").replace(":","_"),
+                                     genOptionString, thisSigOption,   binning, binning_unit)
+
                  
 def doRatioPlot ( listOfHistListsRaw, plotName, genOptionString="", ratioOption="", binning="", binning_unit=-1):
 
     listOfHistLists=[]
     listOfHistLists=listOfHistLists+listOfHistListsRaw
-    print "length - ", len(listOfHistListsRaw)
+    #print "length - ", len(listOfHistListsRaw)
+
+    hDen=listOfHistLists[0][0]
+    if( "type:function" in listOfHistLists[0][1].lower() ):
+        print " I do know it's a function!!!"
+        try:     hDen=funcToHist(hDen,listOfHistLists[1][0])
+        except:  hDen=funcToHist(hDen,listOfHistLists[2][0])
     
     for iHist,histList in enumerate(listOfHistListsRaw):
 
-        print histList
+        #print histList
 
         try:
             ratioError=str(genOptionString.split("RatioError:")[1].split(",")[0])
         except:
             ratioError=""
             
-        print "histList[0]", histList[0]
-        print "listOfHistLists[0][0]", listOfHistLists[0][0]
-        print
-        ratio=makeRatio(histList[0],listOfHistLists[0][0],ratioError)
-                
+        #print "histList[0]", histList[0]
+        #print "listOfHistLists[0][0]", listOfHistLists[0][0]
+        #print
+        hNum=histList[0]
+        if( "type:function" in histList[1].lower() ):
+            hNum=funcToHist(hNum,hDen)
+        
+        ratio=makeRatio(hNum,hDen,ratioError)
+        
         option=""
         if ratioOption:
             option+=","+ratioOption
         if "colour:" in histList[1]:
             option+=',colour:'+histList[1].split("colour:")[1]
 
-        if iHist==0:
-            option=",fillStyle:dots,drawOption:E2"+option
-            
+        if (iHist==0 and not ("type:function" in histList[1].lower() ) ):
+            option=option.replace(",drawOption:Hist","")
+            option=option.replace(",markerStyle:",",blankOption:")
+            option+=",fillStyle:dots,drawOption:E2"
+            if(verbose): print " doRatioPlot: ratioOption for ratioHist", option
+
+        #if (iHist!=0 and "zero" in ratioError):
+        if (iHist!=0 and ("type:function" in histList[1].lower()) ):
+            #option=option.replace(",drawOption:",",blankOption:") 
+            #option+=",drawOption:Hist"
+            if(verbose): print " doRatioPlot: ratioOption for ratioHist", option
+
+       
         ratioList=[ratio,"pad:2"+option]
-        print "ratio Options", ratioList[1]
+        #print "ratio Options", ratioList[1]
         listOfHistLists.append(ratioList)
         #break
             
@@ -383,12 +509,84 @@ def doRatioPlot ( listOfHistListsRaw, plotName, genOptionString="", ratioOption=
     if(genOptionString):
         optionString+=","+genOptionString
 
-    print
-    print "doRatioPlot:"
-    print " -> listOfHistLists: ", listOfHistLists
-    print " -> optionSting:     ",optionString
+    if("verbose" in genOptionString):
+        print
+        print "doRatioPlot:"
+        print " -> listOfHistLists: ", listOfHistLists
+        print " -> optionSting:     ",optionString
     doPlot( listOfHistLists, optionString )
-    print " done doPlot "
-    print; print;
+
 
     return
+
+
+
+def doSignificancePlot ( listOfHistListsRaw, plotName, genOptionString="", sigOption="", binning="", binning_unit=-1):
+
+    listOfHistLists=[]
+    listOfHistLists=listOfHistLists+listOfHistListsRaw
+    #print "length - ", len(listOfHistListsRaw)
+
+    try:     sigIndex=int(genOptionString.split("SigIndex:")[1].split(",")[0])
+    except:  sigIndex=0
+
+    try:      makeSigOption=str(genOptionString.split("SigOption:")[1].split(",")[0])
+    except:   makeSigOption=""
+
+    if(verbose): print "  doSigPlot: GenOptionStr",genOptionString
+    if(verbose): print "  doSigPlot: myOptions: makeSigOption {}, sigIndex {}".format(makeSigOption,sigIndex)
+
+    ## Make the labelled index as bkg (i.e. base of the calculation)
+    hBkg=listOfHistLists[sigIndex][0]
+    if( "type:function" in listOfHistLists[sigIndex][1].lower() ):
+        hBkg=funcToHist(hBkg,hData)
+
+    
+    for iHist,histList in enumerate(listOfHistListsRaw):
+
+        #print histList
+        ##
+        hData=histList[0]
+        if( "type:function" in histList[1].lower() ):
+            hData=funcToHist(hBkg,hData)
+            
+        #print "histList[0]", histList[0]
+        #print "hData", hData
+        sig=makeSig(hData,hBkg,makeSigOption)
+        
+        option=""
+        if sigOption:
+            option+=","+sigOption
+        if "colour:" in histList[1]:
+            option+=',colour:'+histList[1].split("colour:")[1]
+
+        if iHist==sigIndex:
+            option=",fillStyle:dots,drawOption:E2"+option
+            
+        sigList=[sig,"pad:2"+option]
+        #print "sig Options", sigList[1]
+        listOfHistLists.append(sigList)
+        #break
+            
+    optionString="plotName:"+plotName+",legend:yesPlease,ratio_yTitle:Sig."
+    if(genOptionString):
+        optionString+=","+genOptionString
+
+    if("verbose" in genOptionString):
+        print
+        print "doSigPlot:"
+        print " -> listOfHistLists: ", listOfHistLists
+        print " -> optionSting:     ",optionString
+    doPlot( listOfHistLists, optionString )
+
+    return
+
+def doPad1Plot(listOfHistLists, optionString ):
+
+    if not ("nPads" in optionString):         optionString+=",nPads:1"
+    if not ("atlasLabelPos" in optionString): optionString+=",atlasLabelPos:0.2-0.85"
+    if not ("plotStringPos" in optionString): optionString+=",plotStringPos:0.2-0.7-0.85"
+    if not ("yTitleSize" in optionString):    optionString+=",yTitleSize:0.05"
+    if not ("yTitleSize" in optionString):    optionString+=",xTitleSize:0.05"
+
+    doPlot( listOfHistLists, optionString )

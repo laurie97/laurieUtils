@@ -29,32 +29,20 @@ quiet=False
 
 def root_colours(input):
 
-  if input=='Red':
-    output=ROOT.kRed
-  elif input=='Green':
-    output=ROOT.kGreen
-  elif input=='Yellow':
-    output=ROOT.kYellow
-  elif input=='Blue':
-    output=ROOT.kBlue
-  elif input=='Magenta':
-    output=ROOT.kMagenta
-  elif input=='Cyan':
-    output=ROOT.kCyan
-  elif input=='DarkCyan':
-    output=ROOT.kCyan+1
-  elif input=='DarkGreen':
-    output=ROOT.kGreen+2
-  elif input=='Orange':
-    output=ROOT.kOrange
-  elif input=='Black':
-    output=ROOT.kBlack
-  elif input=='Gray':
-    output=ROOT.kGray
-  elif input=='Grey':
-    output=ROOT.kGray
-  else:
-    output=int(input)
+  if input=='Red':           output=ROOT.kRed
+  elif input=='Green':       output=ROOT.kGreen
+  elif input=='Yellow':      output=ROOT.kYellow
+  elif input=='Blue':        output=ROOT.kBlue
+  elif input=='Magenta':     output=ROOT.kMagenta
+  elif input=='Cyan':        output=ROOT.kCyan
+  elif input=='DarkCyan':    output=ROOT.kCyan+1
+  elif input=='DarkGreen':   output=ROOT.kGreen+2
+  elif input=='Orange':      output=ROOT.kOrange
+  elif input=='Black':       output=ROOT.kBlack
+  elif input=='Gray':        output=ROOT.kGray
+  elif input=='Grey':        output=ROOT.kGray
+  elif input=='Violet':      output=ROOT.kViolet+1
+  else:    output=int(input)
 
   return output
 
@@ -139,16 +127,11 @@ def getOption(option, optionMap):
     try:
         ret = optionMap[option]
     except:
-        try:
-            ret=defaultOptionMap[option]
-        except:
-            #print "  Option", option, "not set in the optionMap, returning 0, may cause a crash"
-            ret = 0
+        try:     ret=defaultOptionMap[option]
+        except:  ret = 0
 
-    if ret=="0":
-      return 0
-    else:
-      return ret
+    if ret=="0":  return 0
+    return ret
 
 def openHistsAndStrings(histsAndStrings, verbose=False):
 
@@ -235,15 +218,24 @@ def setupHist(histAndMap,opts):
   
   if( getOption("type",map)=="Function"):
       hist=histAndMap[0].GetHistogram()
-         
+  #if( getOption("type",map)=="graph"):
+  #    hist=histAndMap[0].GetHistogram()
+  
   xRange=getOption("xRange",opts)
   if xRange!=0:
-    xLow=xRange.split("-")[0]
-    xUp=xRange.split("-")[1]
+    if ";" in xRange:
+      xLow=xRange.split(";")[0]
+      xUp=xRange.split(";")[1]
+    else:
+      xLow=xRange.split("-")[0]
+      xUp=xRange.split("-")[1]
     hist.GetXaxis().SetRangeUser( float(xLow), float(xUp) )
     if(getOption('verbose',opts)): print "Setting xRange to be", str(xLow)+"-"+str(xUp)
     
   yRange=getOption("yRange",map)
+  if yRange==0:
+    yRange=getOption("yRange",opts)    
+
   if yRange!=0:
     if ";" in yRange:
       yLow=yRange.split(";")[0]
@@ -251,8 +243,12 @@ def setupHist(histAndMap,opts):
     else:
       yLow=yRange.split("-")[0]
       yUp=yRange.split("-")[1]
-      
-    hist.GetYaxis().SetRangeUser( float(yLow), float(yUp) )
+
+    if( getOption("type",map)!="graph"):
+      hist.GetYaxis().SetRangeUser( float(yLow), float(yUp) )
+    else:
+      hist.GetHistogram().SetMinimum( float(yLow) )
+      hist.GetHistogram().SetMaximum( float(yUp)  )
     if(getOption('verbose',opts)): print "Setting yRange to be", yRange
 
   elif (int(getOption("Logy",opts)) > 0) and (int( getOption("pad",map) )==1):
@@ -264,15 +260,16 @@ def setupHist(histAndMap,opts):
   hist.SetLineColor( root_colours(getOption("colour",map) ) )
   hist.SetMarkerColor( root_colours(getOption("colour",map) ) )
   hist.SetMarkerStyle(root_markerStyles(getOption("markerStyle",map) ) )
-
-  hist.SetFillColor( root_colours(getOption("colour",map) ) )
+  if getOption("fillColour",map): fillColour=root_colours(getOption("fillColour",map) )                                                    
+  else:                           fillColour=root_colours(getOption("colour",map) )
+  hist.SetFillColor(fillColour)
   hist.SetFillStyle( root_fillStyles(getOption("fillStyle",map) ) )
   
   if(getOption('verbose',opts)): print "Setting colour to ", getOption("colour",map)
+  if(getOption('verbose',opts)): print "Setting fillColour to ", fillColour
   if(getOption('verbose',opts)): print "Setting markerStyle to ", getOption("markerStyle",map)
   if(getOption('verbose',opts)): print "Setting fillStyle to ", getOption("fillStyle",map)
   ##print "=> hist.SetFillStyle("+str(root_fillStyles(getOption("fillStyle",map) ) )+"), from "+str(getOption("fillStyle",map))
-  
   
   # Check if first histogram for pad
   if int( getOption("pad",map) )==1:
@@ -289,12 +286,12 @@ def setupHist(histAndMap,opts):
     
     #Set Titles
     if  getOption("yTitle",map) != "Frequency" and getOption("yTitle",map) != 0:
-      hist.SetYTitle(getOption("yTitle",map))    
+      hist.GetYaxis().SetTitle(getOption("yTitle",map))    
     elif getOption(pad+"yTitle",opts) != 0:
-      hist.SetYTitle(getOption(pad+"yTitle",opts))
+      hist.GetYaxis().SetTitle(getOption(pad+"yTitle",opts))
    
     if getOption(pad+"xTitle",opts)!=0:
-      hist.SetXTitle(getOption(pad+"xTitle",opts))
+      hist.GetXaxis().SetTitle(getOption(pad+"xTitle",opts))
 
     if getOption(pad+"yTitleSize",opts)!=0:
       hist.GetYaxis().SetTitleSize(float(getOption(pad+"yTitleSize",opts)))
@@ -320,9 +317,9 @@ def setupHist(histAndMap,opts):
         
   histAndMap[0]=hist
 
+
 def drawHist(histAndMap,opts,pad1,pad2):
 
-  
   hist=histAndMap[0]
   map=histAndMap[1]
 
