@@ -27,7 +27,6 @@ import doPlotUtils
 from doPlotUtils import doPlot
 
 ## Setup Area ##
-
 import AtlasStyle
 AtlasStyle.SetAtlasStyle()
 ROOT.gROOT.ProcessLine("gErrorIgnoreLevel = 3000") #Ignore TCanvas::Print info
@@ -107,32 +106,62 @@ def graphToHist(graph, hist):
 
 def makeSig(hDataRaw, hBkgRaw, sigOptionRaw=""):
 
-    sigOptionRaw+="error"
+    sigOptionRaw=sigOptionRaw+"error"
     if(verbose): print "  makeSig: sigOption", sigOptionRaw
     # No case sensitivity
     sigOption=sigOptionRaw.lower()
 
-    if("reverse" in sigOptionRaw):
-        #print "!!!! reverse"
-        hData=hBkgRaw
-        hBkg=hDataRaw
+    hData=hDataRaw
+    hBkg=hBkgRaw
+
+    if("reverse" in sigOption):
+        print "!!!! reverse"
+        #hData=hBkgRaw
+        #hBkg=hDataRaw
+        factor=-1
     else:
         hData=hDataRaw
         hBkg=hBkgRaw
+        factor=1
    
-    hSig=hBkgRaw.Clone()
+    hSig=hDataRaw.Clone()
     for iBin in range(hBkg.GetNbinsX()):
    
-        if( ("error" in sigOptionRaw) and hBkg.GetBinError(iBin) > 0):
+        if( ("error" in sigOption) and hBkg.GetBinError(iBin) > 0):
+
+            if("justerror" in sigOption):
+                hSig.SetBinContent(iBin, 0)
+                hSig.SetBinError(iBin,    hData.GetBinError(iBin)/hBkg.GetBinError(iBin)  )
+                continue
+
             
+            if("keeperror" in sigOption):
+                hSig.SetBinContent(iBin, (hData.GetBinContent(iBin)-hBkg.GetBinContent(iBin))/hBkg.GetBinError(iBin))
+                hSig.SetBinError(iBin,    hData.GetBinError(iBin)/hBkg.GetBinError(iBin)  )
+                continue
+                
             #if(hData.GetBinContent > 0):
-            #    print "makeSig: iBin {}: ({}-{})/{} =".format(iBin,hData.GetBinContent(iBin),hBkg.GetBinContent(iBin),hBkg.GetBinError(iBin)),
-            #    print (hData.GetBinContent(iBin)-hBkg.GetBinContent(iBin))/hBkg.GetBinError(iBin)
-            hSig.SetBinContent(iBin,  (hData.GetBinContent(iBin)-hBkg.GetBinContent(iBin))/hBkg.GetBinError(iBin) )
+            if(verbose):
+                print "makeSig: binLow {}: ({}-{})/{} =".format(hData.GetBinLowEdge(iBin),hData.GetBinContent(iBin),hBkg.GetBinContent(iBin),hBkg.GetBinError(iBin)),
+                print factor*(hData.GetBinContent(iBin)-hBkg.GetBinContent(iBin))/hBkg.GetBinError(iBin)
+            hSig.SetBinContent(iBin,  factor*(hData.GetBinContent(iBin)-hBkg.GetBinContent(iBin))/hBkg.GetBinError(iBin) )
             hSig.SetBinError(  iBin,  0 )
             continue
-            
+
+        
         elif (  hBkg.GetBinContent(iBin) > 0):
+
+            if("justerror" in sigOption):
+                hSig.SetBinContent(iBin, 0)
+                hSig.SetBinError(iBin,    hData.GetBinError(iBin)/sqrt(hBkg.GetBinContent(iBin))  )
+                continue
+
+            
+            if("keeperror" in sigOption):
+                hSig.SetBinContent(iBin, (hData.GetBinContent(iBin)-hBkg.GetBinContent(iBin))/sqrt(hBkg.GetBinContent(iBin)))
+                hSig.SetBinError(iBin,    hData.GetBinError(iBin)/sqrt(hBkg.GetBinContent(iBin))  )
+                continue
+            
             hSig.SetBinContent(iBin,  (hData.GetBinContent(iBin)-hBkg.GetBinContent(iBin))/sqrt(hBkg.GetBinContent(iBin)) )
             hSig.SetBinError(  iBin,  0 )
             continue
@@ -145,6 +174,9 @@ def makeSig(hDataRaw, hBkgRaw, sigOptionRaw=""):
         
 def makeRatio(hNum, hDen, ratioOptionRaw=""):
 
+
+    verbose=False
+    
     #print "ratioOption", ratioOptionRaw
     # No case sensitivity
     ratioOption=ratioOptionRaw.lower()
@@ -173,6 +205,8 @@ def makeRatio(hNum, hDen, ratioOptionRaw=""):
         elif ("den" in ratioOption):
             if(verbose): print " makeRatio: Setting errors in num to zero"
             hNum=setErrorsToZero(hNum)
+        elif ("zeroratio" in ratioOption):
+            if(verbose): print " makeRatio: Setting errors totally to zero"
         else:
             if(verbose): print " makeRatio: Error in makeRatio, if option 'zero' then must specify 'zeroden' or 'zeronum'"
             return
@@ -180,13 +214,18 @@ def makeRatio(hNum, hDen, ratioOptionRaw=""):
     if("bayes" in ratioOption):
         doBayes="Bayes"
         ratioHist=makeRatio(hNum,hDen,doBayes)
-        return ratioHist       
+        return ratioHist
+
         
     else:
         ratioHist=hNum.Clone(hDen.GetName()+"_ratio")
         try: ratioHist.Sumw2()
         except: print "makeRatio: warning, not setting Sumw2, might be a function"
         ratioHist.Divide(hDen)
+        if ("zeroratio" in ratioOption):
+            if(verbose): print "!!!!! makeRatio: Setting errors totally to zero"
+            for bin in range(1,ratioHist.GetNbinsX()+1):
+                ratioHist.SetBinError(bin,0)
         #for iBin in range(1,ratioHist.GetNbinsX()+1):
         #    if(ratioHist.GetBinContent(iBin) > 0):
         #        sig=(ratioHist.GetBinContent(iBin)-1)/ratioHist.GetBinError(iBin)
@@ -194,8 +233,6 @@ def makeRatio(hNum, hDen, ratioOptionRaw=""):
         return ratioHist
 
    
-
-
 def setErrorsToZero(hRaw):
     hOut=hRaw.Clone(hRaw.GetName()+"_zeroError")
     for bin in range(hOut.GetNbinsX()+1):
@@ -470,7 +507,10 @@ def doRatioPlot ( listOfHistListsRaw, plotName, genOptionString="", ratioOption=
         try:
             ratioError=str(genOptionString.split("RatioError:")[1].split(",")[0])
         except:
-            ratioError=""
+            try:
+                ratioError=str(histList[1].split("RatioError:")[1].split(",")[0])
+            except:
+                ratioError=""
             
         #print "histList[0]", histList[0]
         #print "listOfHistLists[0][0]", listOfHistLists[0][0]
@@ -520,8 +560,80 @@ def doRatioPlot ( listOfHistListsRaw, plotName, genOptionString="", ratioOption=
     return
 
 
+def doJustRatioPlot ( listOfHistListsRaw, plotName, genOptionString="", ratioOption="", binning="", binning_unit=-1):
+
+    listOfHistLists=[]
+    #listOfHistLists=listOfHistLists+listOfHistListsRaw
+    #print "length - ", len(listOfHistListsRaw)
+
+    hDen=listOfHistListsRaw[0][0]
+    if( "type:function" in listOfHistListsRaw[0][1].lower() ):
+        print " I do know it's a function!!!"
+        try:     hDen=funcToHist(hDen,listOfHistListsRaw[1][0])
+        except:  hDen=funcToHist(hDen,listOfHistListsRaw[2][0])
+    
+    for iHist,histList in enumerate(listOfHistListsRaw):
+
+        #print histList
+
+        try:
+            ratioError=str(genOptionString.split("RatioError:")[1].split(",")[0])
+        except:
+            try:
+                ratioError=str(histList[1].split("RatioError:")[1].split(",")[0])
+            except:
+                ratioError=""
+            
+        #print "histList[0]", histList[0]
+        #print "listOfHistLists[0][0]", listOfHistLists[0][0]
+        #print
+        hNum=histList[0]
+        if( "type:function" in histList[1].lower() ):
+            hNum=funcToHist(hNum,hDen)
+        
+        ratio=makeRatio(hNum,hDen,ratioError)
+        
+        option=""
+        option+=","+histList[1]
+        if ratioOption:
+            option+=","+ratioOption
+
+        if (iHist==0 and not ("type:function" in histList[1].lower() ) ):
+            option=option.replace(",drawOption:Hist","")
+            option=option.replace(",markerStyle:",",blankOption:")
+            option+=",fillStyle:3244,drawOption:E2"
+            if(verbose): print " doJustRatioPlot: ratioOption for ratioHist", option
+
+        #if (iHist!=0 and "zero" in ratioError):
+        if (iHist!=0 and ("type:function" in histList[1].lower()) ):
+            #option=option.replace(",drawOption:",",blankOption:") 
+            #option+=",drawOption:Hist"
+            if(verbose): print " doJustRatioPlot: ratioOption for ratioHist", option
+
+       
+        ratioList=[ratio,"pad:1"+option]
+        #print "ratio Options", ratioList[1]
+        listOfHistLists.append(ratioList)
+        #break
+            
+    optionString="plotName:"+plotName+",legend:yesPlease"
+    if(genOptionString):
+        optionString+=","+genOptionString
+
+    if("verbose" in genOptionString):
+        print
+        print "doJustRatioPlot:"
+        print " -> listOfHistLists: ", listOfHistLists
+        print " -> optionSting:     ",optionString
+    doPad1Plot( listOfHistLists, optionString )
+
+    return
+
+
+
 
 def doSignificancePlot ( listOfHistListsRaw, plotName, genOptionString="", sigOption="", binning="", binning_unit=-1):
+
 
     listOfHistLists=[]
     listOfHistLists=listOfHistLists+listOfHistListsRaw
@@ -539,21 +651,21 @@ def doSignificancePlot ( listOfHistListsRaw, plotName, genOptionString="", sigOp
     ## Make the labelled index as bkg (i.e. base of the calculation)
     hBkg=listOfHistLists[sigIndex][0]
     if( "type:function" in listOfHistLists[sigIndex][1].lower() ):
-        hBkg=funcToHist(hBkg,hData)
-
-    
+        try:    hBkg=funcToHist(hBkg,listOfHistLists[1][0])
+        except: hBkg=funcToHist(hBkg,listOfHistLists[0][0])
+        
     for iHist,histList in enumerate(listOfHistListsRaw):
 
         #print histList
         ##
         hData=histList[0]
         if( "type:function" in histList[1].lower() ):
-            hData=funcToHist(hBkg,hData)
+            hData=funcToHist(hData,hBkg)
             
         #print "histList[0]", histList[0]
         #print "hData", hData
         sig=makeSig(hData,hBkg,makeSigOption)
-        
+                
         option=""
         if sigOption:
             option+=","+sigOption
@@ -581,12 +693,78 @@ def doSignificancePlot ( listOfHistListsRaw, plotName, genOptionString="", sigOp
 
     return
 
+
+
+def doJustSignificancePlot ( listOfHistListsRaw, plotName, genOptionString="", sigOption="", binning="", binning_unit=-1):
+
+    listOfHistLists=[]
+    #print "length - ", len(listOfHistListsRaw)
+
+    try:     sigIndex=int(genOptionString.split("SigIndex:")[1].split(",")[0])
+    except:  sigIndex=0
+
+    try:      makeSigOption=str(genOptionString.split("SigOption:")[1].split(",")[0])
+    except:   makeSigOption=""
+
+    if(verbose): print "  doJustSigPlot: GenOptionStr",genOptionString
+    if(verbose): print "  doJustSigPlot: myOptions: makeSigOption {}, sigIndex {}".format(makeSigOption,sigIndex)
+
+    ## Make the labelled index as bkg (i.e. base of the calculation)
+    hBkg=listOfHistListsRaw[sigIndex][0]
+    if( "type:function" in listOfHistListsRaw[sigIndex][1].lower() ):
+        hBkg=funcToHist(hBkg,hData)
+
+    
+    for iHist,histList in enumerate(listOfHistListsRaw):
+
+        #print histList
+        ##
+        hData=histList[0]
+        if( "type:function" in histList[1].lower() ):
+            hData=funcToHist(hBkg,hData)
+
+        thisMakeSigOption=makeSigOption
+        if "SigOption" in histList[1]:
+            thisMakeSigOption=str(histList[1].split("SigOption:")[1].split(",")[0])
+            
+        #print "histList[0]", histList[0]
+        #print "hData", hData
+        sig=makeSig(hData,hBkg,thisMakeSigOption)
+
+        option=","+histList[1]
+        if sigOption:
+            option+=","+sigOption
+        
+
+        sigList=[sig,"pad:1"+option]
+        #print "sig Options", sigList[1]
+        listOfHistLists.append(sigList)
+        #break
+            
+    optionString="plotName:"+plotName+",legend:yesPlease,yTitle:Significance"
+    if(genOptionString):
+        optionString+=","+genOptionString
+
+    if("verbose" in genOptionString):
+        print
+        print "doJustSigPlot:"
+        print " -> listOfHistLists: ", listOfHistLists
+        print " -> optionSting:     ",optionString
+    doPad1Plot( listOfHistLists, optionString )
+
+    return
+
+
 def doPad1Plot(listOfHistLists, optionString ):
 
-    if not ("nPads" in optionString):         optionString+=",nPads:1"
-    if not ("atlasLabelPos" in optionString): optionString+=",atlasLabelPos:0.2-0.85"
-    if not ("plotStringPos" in optionString): optionString+=",plotStringPos:0.2-0.7-0.85"
-    if not ("yTitleSize" in optionString):    optionString+=",yTitleSize:0.05"
-    if not ("yTitleSize" in optionString):    optionString+=",xTitleSize:0.05"
+    if not ("nPads" in optionString):           optionString+=",nPads:1"
+    if not ("atlasLabelPos" in optionString):   optionString+=",atlasLabelPos:0.2-0.85"
+    if not ("plotStringPos" in optionString):   optionString+=",plotStringPos:0.2-0.7-0.85"
+                                                
+    if not ("legendPos" in optionString):       optionString+=",legendPos:0.62-0.7-0.8-0.9"
+    if not ("legendTextSize" in optionString):  optionString+=",legendTextSize:0.035"
+    if not ("yTitleSize" in optionString):      optionString+=",yTitleSize:0.05"
+    if not ("yTitleSize" in optionString):      optionString+=",xTitleSize:0.05"
+    if not ("xTitleOffset" in optionString):    optionString+=",xTitleOffset:1"
 
     doPlot( listOfHistLists, optionString )

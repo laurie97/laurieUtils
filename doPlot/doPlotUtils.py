@@ -23,6 +23,7 @@ gROOT.ProcessLine("gErrorIgnoreLevel > 2000;")
 gStyle.SetOptTitle( 0 )
 
 import AtlasStyle
+AtlasStyle.SetAtlasStyle()
 
 verbose=False
 quiet=False
@@ -41,6 +42,8 @@ def root_colours(input):
   elif input=='Black':       output=ROOT.kBlack
   elif input=='Gray':        output=ROOT.kGray
   elif input=='Grey':        output=ROOT.kGray
+  elif input=='White':       output=ROOT.kWhite
+  elif input=='DarkGrey':    output=ROOT.kGray+2
   elif input=='Violet':      output=ROOT.kViolet+1
   else:    output=int(input)
 
@@ -197,8 +200,15 @@ def setupCanvas(opts):
   if getOption("legend",opts):
     legendPos=getOption("legendPos",opts).split("-")
     legend=ROOT.TLegend( float(legendPos[0]), float(legendPos[1]), float(legendPos[2]), float(legendPos[3]) )
-    legend.SetFillStyle(0)
-    legend.SetTextSize(0.04)
+    if getOption("legendFillColour",opts)!=0:
+      legend.SetFillColor(int(getOption("legendFillColour",opts)))
+    else:
+      legend.SetFillStyle(0)
+    
+    if getOption("legendTextSize",opts)!=0:
+      legend.SetTextSize(float(getOption("legendTextSize",opts)))
+    else:
+      legend.SetTextSize(0.04)
 
     if getOption("legendColumns",opts):
       legend.SetNColumns(int(getOption("legendColumns",opts)))
@@ -357,7 +367,6 @@ def drawHist(histAndMap,opts,pad1,pad2):
   histAndMap[1]=map
 
   if(getOption('verbose',opts)): print "  Drawn hist", hist.GetName(), "with drawOption", drawOption, "in pad", int( getOption("pad",map) )
-  
   return
 
 def finaliseCanvas(opts, canv, pad1, pad2):
