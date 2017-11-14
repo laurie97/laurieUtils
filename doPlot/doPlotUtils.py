@@ -117,9 +117,10 @@ def getOptionMapFromString(optionString, verbose=False):
 
 
 defaultOptionString="Type:Hist,nPads:2,Logx:0,Logy:0,colour:Black,pad1DrawOption:,pad2DrawOption:,atlasLabel:Internal,atlasLabelPos:0.2-0.85,plotStringPos:0.2-0.7-0.9,plotName:test"
-defaultOptionString+=",yTitle:Frequency,yTitleSize:0.06,xTitleSize:0.06"
-defaultOptionString+=",ratio_yTitle:Ratio,ratio_yTitleSize:0.15,ratio_yTitleOffset:0.25,ratio_xTitle:,ratio_xLabelSize:0.07,ratio_yLabelSize:0.07,pad:1"
-defaultOptionString+=",legendPos:0.6-0.7-0.9-0.9,plotSuffix:pdf-C-png,verbose:0"
+defaultOptionString+=",yTitle:Frequency,yTitleSize:0.06,yTitleOffset:1,xTitleSize:0.05,xTitleOffset:0.02"
+defaultOptionString+=",ratio_yTitle:Ratio,ratio_yTitleSize:0.13,ratio_yTitleOffset:0.5,ratio_xTitleSize:0.15,ratio_xTitleOffset:0.9"
+defaultOptionString+=",ratio_xLabelSize:0.1,ratio_yLabelSize:0.1,ratio_yLabelDivisions:5-0-5"
+defaultOptionString+=",pad:1,legendPos:0.6-0.7-0.9-0.9,plotSuffix:pdf-C-png,verbose:0,newRightMargin:1"
 
 if(verbose): print
 if(verbose): print "Default Settings for map"
@@ -159,13 +160,18 @@ def setupCanvas(opts):
   canv.cd()
   
   pad1 = ROOT.TPad("pad1","pad1",0,0.3,1,1)
-  pad2 = ROOT.TPad("pad2","pad2",0,0.01,1,0.3)
+  pad2 = ROOT.TPad("pad2","pad2",0,0.01,1,0.37)
+  if(int(getOption('newRightMargin',opts)) > 0 ):
+    pad1.SetRightMargin(0.1)
+    pad2.SetRightMargin(0.1)
   pad1.Draw()
   pad2.Draw()
     
   if(getOption('verbose',opts)): print "nPads:", getOption("nPads",opts)
 
   if int( getOption("nPads",opts) ) > 1:
+    pad2.SetTopMargin(0.03)
+    pad2.SetBottomMargin(0.35) 
     pad1.Draw()
     pad2.Draw()
     pad2.SetGridx()
@@ -299,9 +305,13 @@ def setupHist(histAndMap,opts):
       hist.GetYaxis().SetTitle(getOption("yTitle",map))    
     elif getOption(pad+"yTitle",opts) != 0:
       hist.GetYaxis().SetTitle(getOption(pad+"yTitle",opts))
-   
-    if getOption(pad+"xTitle",opts)!=0:
-      hist.GetXaxis().SetTitle(getOption(pad+"xTitle",opts))
+    if ( int(getOption("nPads",opts)) == int( getOption("pad",map) )): 
+      if getOption("xTitle",opts)!=0:
+        hist.GetXaxis().SetTitle(getOption("xTitle",opts))
+        if(getOption('verbose',opts)): print "xTitle:", getOption("xTitle",opts), "in pad",getOption("pad",map)
+
+    #if getOption(pad+"xTitle",opts)!=0:
+    #  hist.GetXaxis().SetTitle(getOption(pad+"xTitle",opts))
 
     if getOption(pad+"yTitleSize",opts)!=0:
       hist.GetYaxis().SetTitleSize(float(getOption(pad+"yTitleSize",opts)))
@@ -323,7 +333,15 @@ def setupHist(histAndMap,opts):
       hist.GetYaxis().SetLabelOffset(float(getOption(pad+"yLabelOffset",opts)))
     if getOption(pad+"xLabelOffset",opts)!=0:
       hist.GetXaxis().SetLabelOffset(float(getOption(pad+"xLabelOffset",opts)))
-  
+
+    if getOption(pad+"yLabelDivisions",opts)!=0:
+      ndivisions=getOption(pad+"yLabelDivisions",opts).split('-')
+      hist.GetYaxis().SetNdivisions(int(ndivisions[0]),int(ndivisions[1]),int(ndivisions[2]))
+    if getOption(pad+"xLabelDivisions",opts)!=0:
+      ndivisions=getOption(pad+"xLabelDivisions",opts).split('-')
+      hist.GetXaxis().SetNdivisions(int(ndivisions[0]),int(ndivisions[1]),int(ndivisions[2]))
+
+      
         
   histAndMap[0]=hist
 
@@ -381,7 +399,9 @@ def finaliseCanvas(opts, canv, pad1, pad2):
     AtlasStyle.myText(labelPosX,(labelPosY-0.05),1,"#scale[0.9]{#sqrt{s} = 13 TeV}");
     if getOption("lumi",opts)!=0:
       #AtlasStyle.myText(labelPosX,(labelPosY-0.12),1,"#scale[0.9]{#int L dt = "+args.lumi+ " fb^{-1}}")
-      AtlasStyle.myText(labelPosX,(labelPosY-0.1),1,"#scale[0.9]{"+getOption("lumi",opts)+" fb^{-1}}");
+      if("24.5" in getOption("lumi",opts)): print " doPlot: Doing low mass lumi fix (24.5 -> 24.3)"
+      lumi=getOption("lumi",opts).replace("24.5","24.3")
+      AtlasStyle.myText(labelPosX,(labelPosY-0.1),1,"#scale[0.9]{"+lumi+" fb^{-1}}");
 
   gStyle.SetOptStat(0)
   legend=getOption("legend",opts)
