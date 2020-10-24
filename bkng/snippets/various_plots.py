@@ -436,6 +436,9 @@ fig.savefig(plot_dir+'waterfall')
 #### Get Correlation Plot
 ###########################################
 
+
+import seaborn as sns
+                                                         
 ## Set up clour scheme                                                         
 colour_scheme=(sns.color_palette("RdBu", n_colors=11))[::-1]
 del colour_scheme[-2]
@@ -450,7 +453,6 @@ df_abs_correlation=abs(df_source[features].corr())
 
 ## Seaborn plot
                                                          
-import seaborn as sns
 
 ax = get_ax(sx=30,sy=30)
 sns.heatmap(df_abs_correlation, 
