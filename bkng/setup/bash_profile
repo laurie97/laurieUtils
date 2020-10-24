@@ -1,0 +1,79 @@
+echo
+echo "################################################"
+echo "################################################"
+echo "###   Hello Laurie. Welcome to your terminal ###"
+echo "################################################"
+echo "################################################"
+echo
+echo "------------------------------------------------"
+echo "-------    *************************    --------"
+echo "-------    => Fired up, ready to go!    --------"
+echo "------------------------------------------------"
+echo
+
+######## Programs ######
+alias Emacs='/Applications/Emacs.app/Contents/MacOS/Emacs'
+
+####### For Kubernates #####
+export https_proxy=http://webproxy.corp.booking.com:3128
+export http_proxy=http://webproxy.corp.booking.com:3128
+export no_proxy=.booking.com
+
+######## Navigation Tools ##########################
+
+### Andy's hack
+### Bind the up/down arrows in the linux bash terminal to search the bash command history                                                                       
+bind '"\e[A": history-search-backward'
+bind '"\e[B": history-search-forward'
+
+### Set up a current for easy moving about
+alias current_setup='export CURRENT=$(pwd); echo $CURRENT'
+alias current='cd $CURRENT; echo $CURRENT'
+alias cur='current'
+alias cur_setup='current_setup'
+
+
+######## Useful commands #######
+alias new='ls -ltrd * | tail -10'
+
+
+######### Setups ##############
+
+## make setup auto
+alias make_setup='source ~/bin/make_setup.sh'
+## list my aliases
+alias list='sh ~/.list_aliases.sh'
+
+alias sBook='ssh ssh.booking.com; kinit;'
+alias ams='ssh -A  lmcclymont-hadoop-01.fab4.prod.booking.com'
+alias lhr='ssh -A  lmcclymont-hadoop-02.fab4.prod.booking.com'
+alias ams_3='ssh -A  lmcclymont-hadoop-03.fab4.prod.booking.com'
+
+
+##### Auto-made Setups ##########
+alias s_story='source /Users/lmcclymont/Programming/Booking/git_laurie/Analyses/setup_story.sh'
+alias s_lang='source /Users/lmcclymont/Programming/Booking/git_laurie/Analyses/setup_lang.sh'
+alias s_utils='source /Users/lmcclymont/Programming/Booking/wfm/laurie_utils/setup_utils.sh'
+alias s_q_cr_a='source /Users/lmcclymont/Programming/Booking/wfm/storyboard_queries/setup_q_cr_a.sh'
+alias s_q_cr_l='source /Users/lmcclymont/Programming/Booking/wfm/storyboard_queries/setup_q_cr_l.sh'
+alias s_utils='source /Users/lmcclymont/Programming/Booking/git_laurie/laurie_utils/setup_utils.sh'
+alias s_lang_a='source /Users/lmcclymont/Programming/Booking/git_laurie/Analyses/setup_lang_a.sh'
+alias s_q_cr_bpa_a='source /Users/lmcclymont/Programming/Booking/wfm/storyboard_queries/setup_q_cr_bpa_a.sh'
+alias s_q_cr_bpa_l='source /Users/lmcclymont/Programming/Booking/wfm/storyboard_queries/setup_q_cr_bpa_l.sh'
+alias s_wfm_ana='source /Users/lmcclymont/Programming/Booking/git_laurie/Analyses/setup_ana.sh'
+alias s_q_china_a='source /Users/lmcclymont/Programming/Booking/wfm/storyboard_queries/setup_q_china_a.sh'
+alias s_q_cost='source /Users/lmcclymont/Programming/Booking/wfm/storyboard_queries/setup_q_cost.sh'
+alias s_q_cost_l='source /Users/lmcclymont/Programming/Booking/wfm/storyboard_queries/setup_q_cost_l.sh'
+alias s_q_cost_a='source /Users/lmcclymont/Programming/Booking/wfm/storyboard_queries/setup_q_cost_a.sh'
+alias s_q_china_l='source /Users/lmcclymont/Programming/Booking/wfm/storyboard_queries/setup_q_china_l.sh'
+alias s_q_cr_dd='source /Users/lmcclymont/Programming/Booking/wfm/storyboard_queries/setup_q_cr_dd.sh'
+alias s_q_cr_dd_a='source /Users/lmcclymont/Programming/Booking/wfm/storyboard_queries/setup_q_cr_dd_a.sh'
+alias s_q_cr_dd_l='source /Users/lmcclymont/Programming/Booking/wfm/storyboard_queries/setup_q_cr_dd_l.sh'
+alias s_q_my_cost_l='source /Users/lmcclymont/Programming/Booking/wfm/storyboard_queries/setup_q_my_cost_l.sh'
+alias s_oozie='source /Users/lmcclymont/Programming/Booking/oozies/setup_oozie.sh'
+alias s_bin='source /Users/lmcclymont/Programming/Booking/bin/setup_bin.sh'
+alias s_aht='source /Users/lmcclymont/Programming/Booking/wfm/aht/setup_aht.sh'
+alias s_ana='source /Users/lmcclymont/Programming/Booking/git_laurie/laurie-app-marketing-analysis/setup_ana.sh'
+alias s_decision='source /Users/lmcclymont/Programming/Booking/git_laurie/app_marketing_decision_framework/setup_decision.sh'
+
+alias s_docker_kvm='source /Users/lmcclymont/Programming/Booking/kubernetes_workspace/docker_kvm/setup_docker_kvm.sh'
