@@ -1,0 +1,74 @@
+{% extends "ui3/sidenav_base_web.html" %}
+{% load static %}
+
+{% load macros %}
+{% block title %}Help page{% endblock %}
+
+{% block extrastyle %}
+{% endblock %}
+
+{% block sidebar %}
+  <!-- left navigation -->
+  <div class="sidenav">
+    {% for section, charts in nav %}
+      <p class='sidenavtitle'>{{section}}</p>
+      {% for url, title in charts %}
+        <a href="{{url}}">{{title}}</a>
+      {% endfor %}
+      </br>
+    {% endfor %}
+  </div>
+{% endblock sidebar %}
+
+{% block content %}
+
+  <div id="nav_page_title" class="row">
+    <p></p>
+  </div>
+  <div class="row">
+    <div id="side_content" class="col side_content_grid1">
+      <div style="display: flex;">
+        <div>
+          <h3>{{page_title|safe}}<h3>
+        </div>
+        <div style="margin-left: auto;overflow: hidden;min-width:300px;">
+          <div style="position:relative;left:-15px;width:300px;height: 45px;overflow: hidden;">
+            {% guidance_warning guidance_warning 'line_small' %}
+          </div>
+        </div>
+      </div>
+      <div>
+        {{content|safe}}
+      </div>
+      <div>
+        {{chart|safe}}
+      </div>
+      {% if homepage_nav%}
+        <div class="card card-dashboard_home">
+          <div class="card-body">
+            <h4 class='class-title'; style='margin-bottom: 10px'>Dashboard Content</h4>
+            <div style='margin-left: 5px'>
+              {% for section, charts in homepage_nav %}
+                <div style='margin-top: 10px; margin-bottom: 10px;'>
+                  <h6 class='class-body'; style='margin-bottom: 4px;'>{{section}}:</h6>
+                  {% for url, title in charts %}
+                    <a style='margin-right: 10px'; class="btn btn-ifate_blue btn-sm"; href="{{url}}">{{title}}</a>
+                  {% endfor %}
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  <script src="{% static 'vendors/bokeh/bokeh.min.js' %}"></script>
+  <script src="{% static 'vendors/bokeh/bokeh-gl.min.js' %}"></script>
+  <script src="{% static 'vendors/bokeh/bokeh-widgets.min.js' %}"></script>
+  <script src="{% static 'vendors/bokeh/bokeh-tables.min.js' %}"></script>
+  <script src="{% static 'vendors/bokeh/bokeh-mathjax.min.js' %}"></script>
+  <script nonce="{{request.csp_nonce}}">
+    {{ script   | safe }}
+  </script>
+  
+{% endblock%}
